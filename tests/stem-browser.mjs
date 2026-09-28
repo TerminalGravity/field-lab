@@ -21,6 +21,12 @@ try{
  await page.getByText('CHALLENGE COMPLETE').waitFor();
  await page.getByRole('link',{name:'Token Economics course'}).click();
  assert.ok(page.url().includes('/course/'));
+ const mobile=await browser.newPage({viewport:{width:390,height:844}});
+ await mobile.goto('http://127.0.0.1:4178/',{waitUntil:'networkidle'});
+ await mobile.getByText('Why does this happen?').click();
+ assert.equal(await mobile.locator('.mobile-explain p').isVisible(),true);
+ assert.equal(await mobile.evaluate(()=>document.documentElement.scrollWidth),390);
+ await mobile.close();
  assert.deepEqual(errors,[]);
  console.log('STEM browser: three 3D lessons, live controls, challenges, pause, course route passed');
 }finally{await browser.close()}
