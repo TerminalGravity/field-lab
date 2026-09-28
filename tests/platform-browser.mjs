@@ -1,0 +1,31 @@
+import {chromium} from 'playwright';
+import assert from 'node:assert/strict';
+const browser=await chromium.launch({headless:true,executablePath:'/run/current-system/sw/bin/chromium',args:['--no-sandbox']});
+try{
+ const page=await browser.newPage({viewport:{width:1440,height:900},acceptDownloads:true});
+ await page.goto('http://127.0.0.1:4178/course/',{waitUntil:'networkidle'});
+ await page.getByRole('button',{name:'Measure',exact:true}).click();
+ await page.getByLabel('Import usage JSON').setInputFiles({name:'usage.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify([{model:'gpt-6-sol',usage:{input_tokens:5000,input_tokens_details:{cached_tokens:3000,cache_write_tokens:1000},output_tokens:500}}]))});
+ await page.getByText('$0.0101').first().waitFor();
+ assert.ok((await page.getByText('$0.0101').count())>0);
+ await page.reload({waitUntil:'networkidle'});
+ await page.getByRole('button',{name:'Measure',exact:true}).click();
+ assert.ok((await page.getByText('$0.0101').count())>0);
+ const report=page.waitForEvent('download');await page.getByRole('button',{name:'Export report'}).click();assert.equal((await report).suggestedFilename(),'cost-report.json');
+ await page.getByRole('button',{name:'Experiment',exact:true}).click();
+ const companion=page.waitForEvent('download');await page.getByRole('button',{name:'Download local runner'}).click();assert.equal((await companion).suggestedFilename(),'local-benchmark.mjs');
+ await page.getByLabel('Import local result').setInputFiles({name:'result.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({kind:'local-benchmark',model:'local-fixture',usage:{input_tokens:12,output_tokens:6},latency_ms:800,output:'42'}))});
+ await page.getByText('local-fixture').first().waitFor();
+ assert.ok((await page.getByText('local-fixture').count())>0);
+ assert.ok((await page.getByText(/hardware and power/i).count())>0);
+ await page.getByLabel('Met the quality bar').last().check();
+ await page.getByLabel('Import local result').setInputFiles({name:'replacement.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({kind:'local-benchmark',model:'replacement-model',usage:{input_tokens:10,output_tokens:5},latency_ms:500}))});
+ await page.getByText('replacement-model').first().waitFor();
+ assert.equal(await page.getByLabel('Met the quality bar').last().isChecked(),false);
+ await page.getByLabel('Power draw (watts)').fill('-1');
+ assert.ok((await page.getByText(/invalid hardware assumptions/i).count())>0);
+ assert.ok((await page.getByText('Test the cheaper route.').count())>0);
+ await page.getByLabel('Useful life (hours)').fill('0');
+ assert.ok((await page.getByText(/invalid hardware assumptions/i).count())>0);
+ console.log('Platform browser: import, price, persist, export, local compare passed');
+}finally{await browser.close()}

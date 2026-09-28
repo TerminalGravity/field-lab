@@ -1,0 +1,1 @@
+A support ticket says: "I was charged twice for the same order. One charge is pending and the other posted." Classify the request into exactly one of billing, shipping, account, or other, and write one concise next action. Do not promise a refund before verifying both transactions.
